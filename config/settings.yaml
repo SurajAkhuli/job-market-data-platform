@@ -1,0 +1,24 @@
+api:
+  provider: adzuna
+  daily_limit: 250
+  countries:
+    - IN    # India           # inr      # 1
+    - US    # United States   # usd       # 90.24
+    - AU    # Australia      # aud        # 62.88 
+    - gb  # Great Britain     # gbp       # 122.25
+    - CA    # Canada     # cad            # 60.18
+  roles:
+    - "Data Engineer"
+    - "Analytics Engineer"
+    - "Data Platform Engineer"
+    - "Data Scientist"
+
+schedule:
+  run_time: "08:00 AM"
+  frequency: "daily"
+
+storage:
+  bronze_path: "data/bronze/"
+  silver_path: "data/silver/"
+  gold_path: "data/gold/"
+  cloud_drive: "Google Drive/job-market-data-lake/data/"
