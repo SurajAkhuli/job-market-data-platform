@@ -1,6 +1,6 @@
 from pathlib import Path
 import duckdb
-import sys
+import sys, os
 from pipelines.utils.logger import get_logger
 logger = get_logger(__name__)
 
@@ -13,10 +13,29 @@ def gold_base_create(date):
     filename= "jobs_cleaned_" + date + ".parquet" 
     SILVER_FILE = BASE_DIR / "data" / "silver" / filename
 
+    os.makedirs("data", exist_ok=True)      #if data dir not there it will create
     logger.info("Connecting to database")
-    conn = duckdb.connect("data/data.db")
+    conn = duckdb.connect("data/data.db")   # if data.db not there it will create
 
     conn.execute("BEGIN;")
+
+    # this will create table if not present
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS gold_jobs_base (
+            job_id VARCHAR,
+            title VARCHAR,
+            company VARCHAR,
+            city VARCHAR,
+            country VARCHAR,
+            salary_min DOUBLE,
+            salary_max DOUBLE,
+            salary_predicted VARCHAR,
+            description VARCHAR,
+            posted_date VARCHAR,
+            ingestion_date VARCHAR,
+            standardized_title VARCHAR
+        );
+    """)
 
     logger.info("Creating gold base table")
     # delete existing versions
