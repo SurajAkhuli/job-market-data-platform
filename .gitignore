@@ -204,3 +204,4 @@ pyrightconfig.json
 
 *.parquet
 *.csv
+*.json

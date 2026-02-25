@@ -1,5 +1,7 @@
 import duckdb
 from pathlib import Path
+from pipelines.utils.logger import get_logger
+logger= get_logger(__name__)
 
 
 def gold_skill_demand_table(): 
@@ -11,9 +13,10 @@ def gold_skill_demand_table():
     GOLD_SKILL_TABLE = GOLD_DIR / "gold_skill_demand.parquet"
 
     # ---------- DuckDB connection ----------
-    con = duckdb.connect()
+    con = duckdb.connect("data/data.db")
 
     con.execute("begin;")
+    logger.info("Data processing start for create skills demands table")
     # ---------- Register Silver data ----------
     con.execute(f"""
         CREATE OR REPLACE VIEW silver_jobs AS
@@ -53,7 +56,8 @@ def gold_skill_demand_table():
         TO '{GOLD_SKILL_TABLE}'
         (FORMAT 'parquet', COMPRESSION 'snappy')
     """)
+    logger.info("All Gold tables created successfully")
     con.execute("commit;")
     con.close()
 
-    print("Gold skill demand table created:", GOLD_SKILL_TABLE)
+    # print("Gold skill demand table created:", GOLD_SKILL_TABLE)

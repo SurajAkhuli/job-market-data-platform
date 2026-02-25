@@ -7,14 +7,16 @@ from datetime import datetime, date
 from pathlib import Path
 from dotenv import load_dotenv
 from airflow.sdk import Variable
+from pipelines.utils.logger import get_logger
 
+logger = get_logger(__name__)
 load_dotenv()
 
 # BASE_DIR = Path(__file__).resolve().parent.parent
 BASE_DIR = Path("/opt/airflow")
 
 CONFIG_PATH = BASE_DIR / "config" / "settings.yaml"
-LOG_PATH = BASE_DIR / "logs" / "ingestion_errors.log"
+# LOG_PATH = BASE_DIR / "logs" / "ingestion_errors.log"
 BRONZE_DIR = BASE_DIR / "data" / "bronze"
 
 with open(CONFIG_PATH, "r") as f:
@@ -50,7 +52,7 @@ def fetch_jobs_for_country(country, role, max_pages=3):
         }
 
         try:
-            print(f"Fetching {role} jobs for {country}, page {page}")
+            logger.info(f"Fetching {role} jobs for {country}, page {page}")
 
             response = requests.get(base_url, params=params, timeout=20)
 
@@ -77,15 +79,13 @@ def fetch_jobs_for_country(country, role, max_pages=3):
             time.sleep(3)
 
         except Exception as e:
-            with open(LOG_PATH, "a") as log:
-                log.write(f"[{datetime.now()}] ERROR {country} page {page}: {str(e)}\n")
-            print(f"Error on {country} page {page}, skipping...")
+            logger.exception(f"Error in {country} page {page} : {str(e)}")
 
     return all_jobs
 
 
 def run_ingestion():
-    print("Starting daily ingestion...")
+    logger.info("Starting daily ingestion")
 
     all_data = {
         "ingestion_date": datetime.today().strftime("%Y-%m-%d"),
@@ -101,6 +101,8 @@ def run_ingestion():
     os.makedirs(BRONZE_PATH, exist_ok=True)
 
     output_file = get_today_filename()
+
+    logger.info(f"ingestion complete now saving data to {output_file}")
 
     if os.path.exists(output_file):
         # Load existing data
@@ -119,7 +121,7 @@ def run_ingestion():
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(all_data, f, indent=2)
 
-    print(f"Saved {len(all_data['jobs'])} jobs to {output_file}")
+    logger.info(f"Saved {len(all_data['jobs'])} jobs to {output_file}")
 
 if __name__ == "__main__":
     run_ingestion()

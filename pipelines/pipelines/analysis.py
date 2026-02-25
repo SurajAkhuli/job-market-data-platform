@@ -8,7 +8,7 @@ PATH = BASE_DIR / "data" / "gold" / "gold_skill_demand.parquet"
 # -- SELECT count(*) FROM read_parquet('{PATH}');
 # SELECT * FROM read_parquet('{PATH}');
 # """).show()
-con = duckdb.connect("data.db")
+con = duckdb.connect("data/data.db")
 con.sql("select count(*) from gold_jobs_base").show()
 
 # con = duckdb.connect("data.db")

@@ -2,6 +2,8 @@ from pathlib import Path
 import pandas as pd, json
 import numpy as np
 import sys
+from pipelines.utils.logger import get_logger
+logger = get_logger(__name__)
 
 # BASE_DIR = Path(__file__).resolve().parent.parent
 # date = sys.argv[1]
@@ -11,14 +13,18 @@ def bronze_to_silver_conversion(date):
     filename= "raw_jobs_" + date + ".json"
     path= BASE_DIR / "data" / "bronze" / filename
 
+    logger.info(f"Reading json file for the date : {date}")
     with open(path, 'r') as f:
         data = json.load(f)
         df = pd.DataFrame(data['jobs'])
 
 
     # df['ingestion_date']= date     # plz remove this line when move to production 
-
+    logger.info(f"Number of jobs present : {len(df)}")
     df = df.drop_duplicates('job_id', keep='last')          # drop duplicates
+    logger.info(f"Unique number of jobs present : {len(df)}")
+
+    logger.info("Data Transformation & Cleaning of data started..")
     df['job_id']=df['job_id'].astype('string')         # earlier as object -> string
     df['title']=df['title'].str.lower()                # lower all alphabets of title 
 
@@ -62,11 +68,15 @@ def bronze_to_silver_conversion(date):
         'software engineer'
     ]
     df['standardized_title']= np.select(conditions, choices, default="other")
+    logger.info("Data Transformation completed")
 
 
     filename= "jobs_cleaned_" + date + ".parquet"
     path= BASE_DIR / "data" / "silver" / filename
     df.to_parquet(path, engine='pyarrow', compression='snappy')
+    logger.info(f"Completed bronze_to_silver for {date}")
+
+
 
 
 # python3.11 pipelines/bronze_to_silver.py YYYY_MM_DD

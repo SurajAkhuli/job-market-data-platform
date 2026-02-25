@@ -11,6 +11,7 @@ SILVER = f"{BASE}/silver"
 GOLD = f"{BASE}/gold"
 
 date= datetime.today().strftime("%Y_%m_%d")
+# date="2026_02_22"
 
 # --------------------
 # Task 1: Bronze
@@ -50,6 +51,10 @@ def task5():
     from pipelines.gold_skill_demand import gold_skill_demand_table
     gold_skill_demand_table()
 
+# def check_date():
+#     from datetime import datetime
+#     print(datetime.now())
+
 # --------------------
 # DAG
 # --------------------
@@ -60,10 +65,14 @@ with DAG(
     catchup=False
 ) as dag:
 
-    t1 = PythonOperator(task_id="bronze", python_callable=ingest)
-    t2 = PythonOperator(task_id="silver", python_callable=transform)
+    t1 = PythonOperator(task_id="data_ingestion", python_callable=ingest)
+    t2 = PythonOperator(task_id="bronze_to_silver_conversion", python_callable=transform)
     t3 = PythonOperator(task_id="gold_base_create", python_callable=task3)
     t4 = PythonOperator(task_id="gold_pipeline", python_callable=task4)
     t5 = PythonOperator(task_id="gold_skill_demand_table", python_callable=task5)
 
 t1>>t2 >> t3 >> t4 >> t5
+
+
+
+    # task = PythonOperator(task_id="date_check", python_callable=check_date)

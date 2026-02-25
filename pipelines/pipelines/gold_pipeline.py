@@ -1,11 +1,15 @@
 from pathlib import Path
 import duckdb
+from pipelines.utils.logger import get_logger
+logger = get_logger(__name__)
 
 # BASE_DIR = Path(__file__).resolve().parent.parent
 
 def gold_pipeline(): 
     BASE_DIR = Path("/opt/airflow")
-    conn = duckdb.connect("data.db")
+
+    logger.info("Connecting to database.. ")
+    conn = duckdb.connect("data/data.db")
 
     GOLD_FILE_PATH = BASE_DIR / "data" / "gold"
 
@@ -20,6 +24,7 @@ def gold_pipeline():
     # (FORMAT PARQUET)
     # """)
 
+    logger.info("Start table creation for gold tables")
     conn.execute(f"""
     COPY (
         SELECT * FROM gold_jobs_base
@@ -61,7 +66,7 @@ def gold_pipeline():
         ) to '{(GOLD_FILE_PATH / "gold_country_overview.parquet").as_posix()}'
                 (FORMAT PARQUET)
     """)
-
+    logger.info("gold_base, gold_role_distribution, gold_salary_distribution_role tables are created and stored as parquet")
 
     # conn.execute(f"""
     # COPY(
@@ -74,4 +79,6 @@ def gold_pipeline():
 
     conn.execute("COMMIT;")
     conn.close()
+
+#     print("successfully all gold tables are created")
 
