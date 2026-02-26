@@ -16,12 +16,94 @@ def transform_bronze_to_silver(date):
     logger.info(f"Reading json file for the date : {date}")
     with open(path, 'r') as f:
         data = json.load(f)
-        df = pd.DataFrame(data['jobs'])
+        jobs_df = pd.DataFrame(data['jobs'])
 
-    logger.info(f"[SILVER] Columns present: {list(df.columns)}")
-    logger.info(f"[SILVER] Null counts:\n{df.isnull().sum()}")
-    logger.info(f"[SILVER][RAW_COUNT] {len(df)}")
+    logger.info(f"[SILVER] Columns present: {list(jobs_df.columns)}")
+    logger.info(f"[SILVER] Null counts:\n{jobs_df.isnull().sum()}")
+    logger.info(f"[SILVER][RAW_COUNT] {len(jobs_df)}")
 
+    # DQ - Data Quality checks starts 
+    # Schema Validation
+    REQUIRED_COLUMNS = {
+        "job_id", "title", "company", "city", "country", "salary_min", "salary_max", "salary_predicted", "description", "posted_date", "ingestion_date"
+    }
+    missing_cols = REQUIRED_COLUMNS - set(jobs_df.columns)
+    if missing_cols:
+        logger.error(f"[DQ][SCHEMA] Missing columns: {missing_cols}")
+        raise ValueError("Schema validation failed")
+    
+    # Null Validation (Critical Fields)
+    CRITICAL_COLUMNS = ["job_id", "title", "country"]
+
+    null_counts = jobs_df[CRITICAL_COLUMNS].isnull().sum()
+    logger.info(f"[DQ][NULL_COUNTS]\n{null_counts}")
+
+    jobs_df_valid = jobs_df.dropna(subset=CRITICAL_COLUMNS)
+    jobs_df_rejected = jobs_df[
+        jobs_df[CRITICAL_COLUMNS].isnull().any(axis=1)
+    ]
+
+    # Salary Validation
+    invalid_salary = jobs_df_valid[
+        (jobs_df_valid["salary_min"].notnull()) &
+        (jobs_df_valid["salary_max"].notnull()) &
+        (jobs_df_valid["salary_min"] > jobs_df_valid["salary_max"])
+    ]
+
+    logger.info(f"[DQ][INVALID_SALARY] rows={len(invalid_salary)}")
+
+    jobs_df_valid = jobs_df_valid.drop(invalid_salary.index)
+    jobs_df_rejected = pd.concat([jobs_df_rejected, invalid_salary])
+
+    # Duplicate Handling
+    dup_count = jobs_df_valid.duplicated(subset=["job_id"]).sum()
+    logger.info(f"[DQ][DUPLICATES] count={dup_count}")
+
+    jobs_df_valid = jobs_df_valid.drop_duplicates(
+        subset=["job_id"], keep="last"
+    )
+
+    # Text Quality (Description)
+    jobs_df_valid["description_length"] = jobs_df_valid["description"].str.len()
+
+    short_desc = jobs_df_valid[jobs_df_valid["description_length"] < 30]
+
+    logger.info(f"[DQ][SHORT_DESC] rows={len(short_desc)}")
+
+    jobs_df_valid = jobs_df_valid[
+        jobs_df_valid["description_length"] >= 30
+    ]
+    jobs_df_rejected = pd.concat([jobs_df_rejected, short_desc]) 
+
+    # Country Validation
+    VALID_COUNTRIES = {"in", "us", "au", "gb", "ca"}
+
+    invalid_country = jobs_df_valid[
+        ~jobs_df_valid["country"].str.lower().isin(VALID_COUNTRIES)
+    ]
+
+    logger.info(f"[DQ][INVALID_COUNTRY] rows={len(invalid_country)}")
+    jobs_df_valid = jobs_df_valid.drop(invalid_country.index)
+    jobs_df_rejected = pd.concat([jobs_df_rejected, invalid_country])
+
+    # Summary Log
+    logger.info(f"""
+    [DQ][SUMMARY]
+    raw_rows={len(jobs_df)}
+    valid_rows={len(jobs_df_valid)}
+    rejected_rows={len(jobs_df_rejected)}
+    """)
+
+    # Save Rejected Data (New Layer)
+    rejected_path = BASE_DIR / "data" / "silver_rejected" / f"rejected_{date}.parquet"
+    rejected_path.parent.mkdir(parents=True, exist_ok=True)
+
+    jobs_df_rejected.to_parquet(rejected_path, engine="pyarrow")
+
+    logger.info(f"[DQ][REJECTED_SAVED] path={rejected_path}")
+    #  Data Quality checks completed now data transformation starts
+
+    df = jobs_df_valid
     # df['ingestion_date']= date     # plz remove this line when move to production 
     df = df.drop_duplicates('job_id', keep='last')          # drop duplicates
     logger.info(f"[SILVER][DEDUPED_COUNT] {len(df)}")
