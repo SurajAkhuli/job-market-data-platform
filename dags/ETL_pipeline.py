@@ -1,6 +1,6 @@
 from airflow import DAG
 from airflow.providers.standard.operators.python import PythonOperator
-from datetime import datetime
+from datetime import datetime,timedelta
 from pipelines.utils.logger import get_logger
 
 logger = get_logger("airflow_tasks")
@@ -63,11 +63,18 @@ def run_skill_demand_task():
 # --------------------
 # DAG
 # --------------------
+default_args = {
+    'owner' : 'data_engineer_Suraj',
+    'retries' : 2,
+    'retry_delay': timedelta(minutes=5),
+}
+
 with DAG(
     dag_id="etl_pipeline",
     start_date=datetime(2024, 1, 1),
     schedule=None,
-    catchup=False
+    catchup=False,
+    default_args=default_args
 ) as dag:
 
     run_daily_ingestion = PythonOperator(

@@ -1,21 +1,12 @@
 import duckdb
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-PATH = BASE_DIR / "data" / "gold" / "gold_skill_demand.parquet"
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+PATH = BASE_DIR / "data" / "gold" / "result.parquet"
 
-# duckdb.sql(f"""
-# -- SELECT count(*) FROM read_parquet('{PATH}');
-# SELECT * FROM read_parquet('{PATH}');
+duckdb.sql(f"select count(*) from read_parquet('{PATH}')").show()
+duckdb.sql(f"select * from read_parquet('{PATH}')").show()
+
+# duckdb.sql("""
+# select round(10.236599,2) 
 # """).show()
-con = duckdb.connect("data/data.db")
-# con.sql("select count(*) from gold_jobs_base").show()
-con.sql("desc gold_jobs_base").show()
-
-# con = duckdb.connect("data.db")
-# # con.sql("select count(*) as count from gold_jobs_base").show()
-# con.sql("show tables").show()
-# con.close()
-# print(PATH)
-
-# duckdb.sql(f"select *from read_parquet('{PATH}')").show()

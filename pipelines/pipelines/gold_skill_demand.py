@@ -46,7 +46,13 @@ def generate_skill_demand_table():
             WHERE description LIKE '%{skill}%'
         """)
 
-    final_query = " UNION ALL ".join(skill_queries)
+    final_query = f"""
+            SELECT *
+            FROM (
+                {" UNION ALL ".join(skill_queries)}
+            ) t
+            ORDER BY job_count DESC
+        """
 
     # ---------- Execute & write Gold ----------
     con.execute(f"""

@@ -22,7 +22,7 @@ def transform_bronze_to_silver(date):
     logger.info(f"[SILVER] Null counts:\n{jobs_df.isnull().sum()}")
     logger.info(f"[SILVER][RAW_COUNT] {len(jobs_df)}")
 
-    # DQ - Data Quality checks starts 
+    #  #########     DQ - DATA QUALITY checks starts  #############################
     # Schema Validation
     REQUIRED_COLUMNS = {
         "job_id", "title", "company", "city", "country", "salary_min", "salary_max", "salary_predicted", "description", "posted_date", "ingestion_date"
