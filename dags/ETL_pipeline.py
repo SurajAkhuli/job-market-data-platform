@@ -1,9 +1,9 @@
 from airflow import DAG
 from airflow.providers.standard.operators.python import PythonOperator
 from datetime import datetime
-import pandas as pd
-import duckdb
-import os
+from pipelines.utils.logger import get_logger
+
+logger = get_logger("airflow_tasks")
 
 BASE = "/opt/airflow/data"
 BRONZE = f"{BASE}/bronze"
@@ -16,40 +16,45 @@ date= datetime.today().strftime("%Y_%m_%d")
 # --------------------
 # Task 1: Bronze
 # --------------------
-def ingest():
-    from pipelines.ingest_pipeline import run_ingestion
-    run_ingestion()
+def run_ingestion_task():
+    from pipelines.ingest_pipeline import run_daily_ingestion
+    logger.info("[DAG] Starting ingestion task")
+    run_daily_ingestion()
 
 # --------------------
 # Task 2: Silver
 # --------------------
-def transform():
-    from pipelines.bronze_to_silver import bronze_to_silver_conversion
-    bronze_to_silver_conversion(date)
+def run_bronze_to_silver_task():
+    from pipelines.bronze_to_silver import transform_bronze_to_silver
+    logger.info("[DAG] Starting bronze to silver conversion task")
+    transform_bronze_to_silver(date)
     
 
 # --------------------
 # Task 3: Gold
 # --------------------
-def task3():
-    from pipelines.incremental_gold import gold_base_create
-    gold_base_create(date)
+def run_gold_base_task():
+    from pipelines.incremental_gold import load_gold_base_incremental
+    logger.info("[DAG] Starting creation of gold base table task")
+    load_gold_base_incremental(date)
 
 
 # --------------------
 # Task 4  
 # --------------------
-def task4():
-    from pipelines.gold_pipeline import gold_pipeline
-    gold_pipeline()
+def run_gold_aggregation_task():
+    from pipelines.gold_pipeline import generate_gold_aggregations
+    logger.info("[DAG] Starting Generating analytical tables task")
+    generate_gold_aggregations()
 
 
 # --------------------
 # Task 5  
 # --------------------
-def task5():
-    from pipelines.gold_skill_demand import gold_skill_demand_table
-    gold_skill_demand_table()
+def run_skill_demand_task():
+    from pipelines.gold_skill_demand import generate_skill_demand_table
+    logger.info("[DAG] Starting Gold skills vs demand task")
+    generate_skill_demand_table()
 
 # def check_date():
 #     from datetime import datetime
@@ -65,13 +70,29 @@ with DAG(
     catchup=False
 ) as dag:
 
-    t1 = PythonOperator(task_id="data_ingestion", python_callable=ingest)
-    t2 = PythonOperator(task_id="bronze_to_silver_conversion", python_callable=transform)
-    t3 = PythonOperator(task_id="gold_base_create", python_callable=task3)
-    t4 = PythonOperator(task_id="gold_pipeline", python_callable=task4)
-    t5 = PythonOperator(task_id="gold_skill_demand_table", python_callable=task5)
+    run_daily_ingestion = PythonOperator(
+        task_id="data_ingestion", 
+        python_callable=run_ingestion_task
+    )
+    silver_task = PythonOperator(
+        task_id="bronze_to_silver_conversion", 
+        python_callable=run_bronze_to_silver_task
+    )
+    gold_base_task = PythonOperator(
+        task_id="gold_base_create", 
+        python_callable=run_gold_base_task
+    )
+    gold_aggregation_task = PythonOperator(
+        task_id="gold_pipeline", 
+        python_callable=run_gold_aggregation_task
+    )
+    gold_skill_demand_task = PythonOperator(
+        task_id="gold_skill_demand_table", 
+        python_callable=run_skill_demand_task
+    )
 
-t1>>t2 >> t3 >> t4 >> t5
+
+run_daily_ingestion>>silver_task >> gold_base_task >> gold_aggregation_task >> gold_skill_demand_task
 
 
 

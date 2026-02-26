@@ -4,7 +4,7 @@ from pipelines.utils.logger import get_logger
 logger= get_logger(__name__)
 
 
-def gold_skill_demand_table(): 
+def generate_skill_demand_table(): 
     # ---------- Paths ----------
     # BASE_DIR = Path(__file__).resolve().parent.parent
     BASE_DIR = Path("/opt/airflow")
@@ -56,7 +56,7 @@ def gold_skill_demand_table():
         TO '{GOLD_SKILL_TABLE}'
         (FORMAT 'parquet', COMPRESSION 'snappy')
     """)
-    logger.info("All Gold tables created successfully")
+    logger.info(f"[GOLD][SKILL] table_created path={GOLD_SKILL_TABLE}")
     con.execute("commit;")
     con.close()
 

@@ -5,7 +5,7 @@ logger = get_logger(__name__)
 
 # BASE_DIR = Path(__file__).resolve().parent.parent
 
-def gold_pipeline(): 
+def generate_gold_aggregations(): 
     BASE_DIR = Path("/opt/airflow")
 
     logger.info("Connecting to database.. ")
@@ -24,7 +24,7 @@ def gold_pipeline():
     # (FORMAT PARQUET)
     # """)
 
-    logger.info("Start table creation for gold tables")
+    logger.info("[GOLD] Generating analytical tables")
     conn.execute(f"""
     COPY (
         SELECT * FROM gold_jobs_base
@@ -32,6 +32,7 @@ def gold_pipeline():
     TO '{(GOLD_FILE_PATH / "gold_base.parquet").as_posix()}'
     (FORMAT PARQUET)
     """)
+    logger.info("[GOLD] gold_base.parquet created")
 
 
     conn.execute(f"""
@@ -43,6 +44,7 @@ def gold_pipeline():
         ) to '{(GOLD_FILE_PATH / "gold_role_distribution.parquet").as_posix()}'
                 (FORMAT PARQUET)
     """)
+    logger.info("[GOLD] gold_role_distribution.parquet created")
 
 
     conn.execute(f"""
@@ -56,6 +58,8 @@ def gold_pipeline():
         ) to '{(GOLD_FILE_PATH / "gold_salary_distribution_role.parquet").as_posix()}'
                 (FORMAT PARQUET)
     """)
+    logger.info("[GOLD] gold_salary_distribution_role.parquet created")
+
 
     conn.execute(f"""
     COPY(
@@ -66,7 +70,7 @@ def gold_pipeline():
         ) to '{(GOLD_FILE_PATH / "gold_country_overview.parquet").as_posix()}'
                 (FORMAT PARQUET)
     """)
-    logger.info("gold_base, gold_role_distribution, gold_salary_distribution_role tables are created and stored as parquet")
+    logger.info("[GOLD] gold_country_overview.parquet created")
 
     # conn.execute(f"""
     # COPY(

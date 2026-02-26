@@ -7,7 +7,7 @@ logger = get_logger(__name__)
 
 # BASE_DIR = Path(__file__).resolve().parent.parent
 # date = sys.argv[1]
-def bronze_to_silver_conversion(date):
+def transform_bronze_to_silver(date):
 
     BASE_DIR = Path("/opt/airflow")
     filename= "raw_jobs_" + date + ".json"
@@ -18,11 +18,13 @@ def bronze_to_silver_conversion(date):
         data = json.load(f)
         df = pd.DataFrame(data['jobs'])
 
+    logger.info(f"[SILVER] Columns present: {list(df.columns)}")
+    logger.info(f"[SILVER] Null counts:\n{df.isnull().sum()}")
+    logger.info(f"[SILVER][RAW_COUNT] {len(df)}")
 
     # df['ingestion_date']= date     # plz remove this line when move to production 
-    logger.info(f"Number of jobs present : {len(df)}")
     df = df.drop_duplicates('job_id', keep='last')          # drop duplicates
-    logger.info(f"Unique number of jobs present : {len(df)}")
+    logger.info(f"[SILVER][DEDUPED_COUNT] {len(df)}")
 
     logger.info("Data Transformation & Cleaning of data started..")
     df['job_id']=df['job_id'].astype('string')         # earlier as object -> string
@@ -68,7 +70,8 @@ def bronze_to_silver_conversion(date):
         'software engineer'
     ]
     df['standardized_title']= np.select(conditions, choices, default="other")
-    logger.info("Data Transformation completed")
+    logger.info(f"[SILVER] Sample roles distribution:\n{df['standardized_title'].value_counts().head(5)}")
+    logger.info(f"[SILVER][WRITE] path={path} rows={len(df)}")
 
 
     filename= "jobs_cleaned_" + date + ".parquet"

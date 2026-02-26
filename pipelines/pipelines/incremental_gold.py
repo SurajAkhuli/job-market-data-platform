@@ -7,14 +7,14 @@ logger = get_logger(__name__)
 # pass silver file or partition path explicitly
 # date = sys.argv[1]
 
-def gold_base_create(date):
+def load_gold_base_incremental(date):
 
     BASE_DIR = Path("/opt/airflow")
     filename= "jobs_cleaned_" + date + ".parquet" 
     SILVER_FILE = BASE_DIR / "data" / "silver" / filename
 
+    logger.info(f"[GOLD][INPUT] file={SILVER_FILE}")
     os.makedirs("data", exist_ok=True)      #if data dir not there it will create
-    logger.info("Connecting to database")
     conn = duckdb.connect("data/data.db")   # if data.db not there it will create
 
     conn.execute("BEGIN;")
@@ -47,13 +47,25 @@ def gold_base_create(date):
     );
     """)
 
+    deleted = conn.execute(f"""
+        SELECT COUNT(*) FROM gold_jobs_base
+        WHERE job_id IN (SELECT job_id FROM read_parquet('{SILVER_FILE}'))
+    """).fetchone()[0]
+
+    logger.info(f"[GOLD][DELETE] rows_removed={deleted}")
+
     # direct insert 
     conn.execute(f"""
     INSERT INTO gold_jobs_base
     SELECT job_id, title, company, city, country, salary_min, salary_max, salary_predicted, description, posted_date, ingestion_date, standardized_title
     FROM read_parquet('{SILVER_FILE}');
     """)
-    logger.info("Gold base table created and stored in database")
+
+    inserted = conn.execute(f"""
+        SELECT COUNT(*) FROM read_parquet('{SILVER_FILE}')
+    """).fetchone()[0]
+
+    logger.info(f"[GOLD][INSERT] rows_inserted={inserted}")
 
     conn.execute("COMMIT;")
     # What this guarantees? --> Both statements succeed → committed

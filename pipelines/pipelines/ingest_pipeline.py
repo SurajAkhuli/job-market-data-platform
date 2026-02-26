@@ -37,7 +37,7 @@ def get_today_filename():
     return BRONZE_DIR / f"raw_jobs_{today}.json"
 
 
-def fetch_jobs_for_country(country, role, max_pages=3):
+def fetch_jobs_by_country_role(country, role, max_pages=3):
     all_jobs = []
 
     for page in range(1, max_pages + 1):
@@ -75,16 +75,25 @@ def fetch_jobs_for_country(country, role, max_pages=3):
                     "posted_date": job.get("created"),
                     "ingestion_date": datetime.today().strftime("%Y_%m_%d")
                 })
+            logger.info(
+                f"[INGEST][SUCCESS] country={country} role={role} page={page} jobs_fetched={len(data['results'])}"
+            )
 
             time.sleep(3)
 
         except Exception as e:
-            logger.exception(f"Error in {country} page {page} : {str(e)}")
+            logger.exception(
+                f"[INGEST][FAIL] country={country} role={role} page={page} error={str(e)}"
+            )
 
     return all_jobs
 
 
-def run_ingestion():
+def run_daily_ingestion():
+    start_time = time.time()
+    total_jobs = 0
+    failed_requests = 0
+
     logger.info("Starting daily ingestion")
 
     all_data = {
@@ -95,7 +104,8 @@ def run_ingestion():
 
     for country in COUNTRIES:
         for role in ROLES:
-            jobs = fetch_jobs_for_country(country, role, max_pages=6)
+            jobs = fetch_jobs_by_country_role(country, role, max_pages=6)
+            total_jobs += len(jobs)
             all_data["jobs"].extend(jobs)
 
     os.makedirs(BRONZE_PATH, exist_ok=True)
@@ -104,24 +114,25 @@ def run_ingestion():
 
     logger.info(f"ingestion complete now saving data to {output_file}")
 
-    if os.path.exists(output_file):
-        # Load existing data
-        with open(output_file, "r", encoding="utf-8") as f:
-            existing_data = json.load(f)
+    # create file and put data in json format
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(all_data, f, indent=2)
 
-        # Append new jobs to existing ones
-        existing_data["jobs"].extend(all_data["jobs"])
+    # # # # # # # run this section when our ingestion failed in halfway change manually in yaml file as per your need 
+    # if os.path.exists(output_file):
+    #     # Load existing data
+    #     with open(output_file, "r", encoding="utf-8") as f:
+    #         existing_data = json.load(f)
 
-        # Rewrite the file (still valid JSON)
-        with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(existing_data, f, indent=2)
+    #     # Append new jobs to existing ones
+    #     existing_data["jobs"].extend(all_data["jobs"])
 
-    else:
-        # First run of the day — just create file
-        with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(all_data, f, indent=2)
+    #     # Rewrite the file (still valid JSON)
+    #     with open(output_file, "w", encoding="utf-8") as f:
+    #         json.dump(existing_data, f, indent=2)
 
-    logger.info(f"Saved {len(all_data['jobs'])} jobs to {output_file}")
+    logger.info(f"[INGEST][SUMMARY] total_jobs={total_jobs}")
+    logger.info(f"[INGEST][TIME] duration_sec={round(time.time() - start_time, 2)}")
 
 if __name__ == "__main__":
-    run_ingestion()
+    run_daily_ingestion()
