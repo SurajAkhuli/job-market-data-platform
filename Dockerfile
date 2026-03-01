@@ -14,5 +14,5 @@ USER airflow
 COPY requirements.txt /requirements.txt
 RUN pip install --no-cache-dir -r /requirements.txt
 
-# COPY pipelines /opt/airflow/pipelines
-# RUN pip install /opt/airflow/pipelines
+COPY pipelines /opt/airflow/pipelines
+RUN pip install /opt/airflow/pipelines

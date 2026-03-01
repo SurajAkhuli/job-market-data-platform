@@ -159,16 +159,18 @@ A cleaned and validated record after the Bronze → Silver transformation:
 
 ```json
 {
-  "job_id": "5583490782",
-  "title": "data engineer",
-  "company": "Zemoso Technologies",
-  "city": "Hyderabad, Telangana",
-  "country": "in",
-  "salary_min": null,
-  "salary_max": null,
-  "description": "Job Title: Data Engineer Experience: 5 Years Location: Chennai/Hyderabad...",
-  "posted_date": "2026-01-14T09:16:45Z",
-  "standardized_role": "data engineer"
+  "job_id": "5612347890",
+  "title": "senior data engineer",
+  "company": "Example Corp",
+  "city": "San Francisco, CA",
+  "country": "us",
+  "salary_min": 8121600,
+  "salary_max": 10828800,
+  "salary_predicted": "1",
+  "description": "We are looking for a senior data engineer with experience in python, sql, spark, and airflow to build scalable data pipelines.",
+  "posted_date": "2026-01-20T10:15:00Z",
+  "ingestion_date": "2026_01_21",
+  "standardized_title": "project manager"
 }
 ```
 
@@ -210,6 +212,11 @@ job-market-data-platform/
 - **Incremental load instead of full refresh**: The Gold base table uses a delete-then-insert pattern per `job_id` batch. This avoids duplicates across runs without requiring a complete table rebuild each time.
 - **DuckDB for analytical storage**: Chosen for lightweight, file-based analytical queries without requiring a running database server. Appropriate for local single-node workloads.
 - **Pipeline code installed as a package**: The `pipelines/` module is installed into the Airflow container via `pip install`, so DAG tasks import it directly without path hacks or manual file copying.
+
+- Pipeline logic is modularized into reusable components (ingestion, transformation, analytics)
+- Each stage can run independently without manual setup
+- Directory structure and storage paths are created automatically during execution
+- Incremental loading is used to avoid full dataset recomputation   
 
 ---
 

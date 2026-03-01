@@ -8,6 +8,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from airflow.sdk import Variable
 from pipelines.utils.logger import get_logger
+from pipelines.utils.paths import ensure_data_directories
 
 logger = get_logger(__name__)
 load_dotenv()
@@ -90,6 +91,7 @@ def fetch_jobs_by_country_role(country, role, max_pages=3):
 
 
 def run_daily_ingestion():
+    ensure_data_directories()
     start_time = time.time()
     total_jobs = 0
     failed_requests = 0
