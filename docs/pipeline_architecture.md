@@ -1,59 +1,116 @@
-# Pipeline Architecture
-
-## Overview
-
-The pipeline follows a Medallion Architecture:
-
-Bronze → Silver → Gold
 
 ---
 
-## Bronze Layer
-- Raw JSON data from Adzuna API
-- Stored as-is
-- No transformation
+# ✅ 2. `pipeline_architecture.md` (REWRITE)
+
+```md
+# Pipeline Architecture (Production-Level Design)
+
+## System Overview
+
+This pipeline follows a layered Medallion Architecture with clear separation of concerns:
+
+- Bronze → Raw ingestion (immutable)
+- Silver → Cleaned, validated, standardized
+- Gold → Analytical modeling (query-optimized)
 
 ---
 
-## Silver Layer
-- Data cleaning and transformation
-- Data quality checks applied
-- Schema standardization
+## Data Flow
+
+Adzuna API  
+→ Bronze (JSON)  
+→ Silver (Parquet)  
+→ Gold Base Table (DuckDB)  
+→ Aggregated Gold Tables  
 
 ---
 
-## Gold Layer
-- Analytical tables
-- Aggregations for reporting
-- Optimized for querying
+## Layer Details
+
+### Bronze Layer
+- Format: JSON
+- Nature: Immutable, append-only
+- Content: Raw API response (flattened)
+- File Pattern:
+data/bronze/raw_jobs_YYYY_MM_DD.json
+
+
+---
+
+### Silver Layer
+- Format: Parquet (columnar, compressed)
+- Purpose:
+- Data cleaning
+- Validation
+- Standardization
+
+Key transformations:
+- Schema enforcement
+- Null filtering (critical fields)
+- Salary validation
+- Currency normalization
+- Text cleaning
+- Role standardization
+
+Rejected records stored separately:
+data/silver_rejected/rejected_YYYY_MM_DD.parquet
+
+
+---
+
+### Gold Layer
+
+#### 1. Base Table (Incremental)
+- Engine: DuckDB
+- Table: `gold_jobs_base`
+- Strategy:
+  - Delete existing job_ids from incoming batch
+  - Insert new records
+  - Guarantees idempotency
+
+---
+
+#### 2. Aggregated Tables
+
+Generated as Parquet:
+
+- `gold_role_distribution`
+- `gold_salary_distribution_role`
+- `gold_country_overview`
+- `gold_skill_demand`
 
 ---
 
 ## Orchestration
 
-Managed using Apache Airflow:
+Managed via Airflow DAG:
 
-DAG: etl_pipeline
+`etl_pipeline`
 
-Task Flow:
-1. ingestion
-2. bronze_to_silver
-3. gold_base
-4. gold_aggregation
-5. skill_demand
+Task dependencies:
+ingestion
+→ bronze_to_silver
+→ incremental_gold_load
+→ gold_aggregations
+→ skill_demand
+
 
 ---
 
 ## Storage
 
-- Local filesystem (Airflow volume)
-- Format: Parquet (Silver & Gold)
-- Database: DuckDB
+| Layer   | Format   | Location |
+|--------|--------|---------|
+| Bronze | JSON   | Local FS |
+| Silver | Parquet| Local FS |
+| Gold   | DuckDB + Parquet | Local FS |
 
 ---
 
 ## Logging
 
-- Centralized logging via custom logger
-- File + console logs
-- Structured log format
+Centralized logging via custom logger:
+- File logs
+- Console logs (Airflow UI)
+- Structured messages per stage

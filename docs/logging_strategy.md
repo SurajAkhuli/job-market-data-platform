@@ -1,14 +1,40 @@
 # Logging Strategy
 
-All pipeline errors will be stored in:
+## Design
 
-logs/ingestion_errors.log
+Centralized logging via custom logger:
 
-Each log entry must contain:
-- Timestamp
-- Step of failure (API call, file save, upload, etc.)
-- Error message
+- File logging
+- Console logging (Airflow UI)
 
-Example log format:
+---
 
-[2026-01-20 08:00] ERROR in ingest_api.py: API timeout on page 3
+## Log Format
+[timestamp] [level] [module] message
+
+
+---
+
+## Coverage
+
+- Ingestion events
+- Data quality checks
+- Transformation steps
+- Gold loading
+- Aggregations
+
+---
+
+## Example
+[INFO] [INGEST] country=US page=2 jobs_fetched=50
+[DQ] rejected_rows=120
+[GOLD][INSERT] rows_inserted=2000
+
+
+---
+
+## Purpose
+
+- Debugging
+- Monitoring pipeline health
+- Observability for failures

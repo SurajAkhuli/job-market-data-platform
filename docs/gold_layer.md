@@ -1,46 +1,53 @@
-# Gold Layer Design
+
+---
+# Gold Layer (Analytical Modeling)
 
 ## Purpose
-The Gold layer provides analytical datasets for reporting and insights.
+
+Serve analytics-ready datasets optimized for querying and reporting.
 
 ---
 
-## Tables Generated
+## Base Table
 
-### 1. gold_base.parquet
-- Full cleaned dataset
-- Source for all downstream analysis
+`gold_jobs_base`
 
----
-
-### 2. gold_role_distribution.parquet
-- role vs job_count
+Acts as:
+- Single source of truth
+- Incrementally updated dataset
 
 ---
 
-### 3. gold_salary_distribution_role.parquet
-- role vs salary stats:
-  - min
-  - max
-  - avg
+## Aggregations
+
+### Role Distribution
+Job count per standardized role
 
 ---
 
-### 4. gold_country_overview.parquet
-- country vs:
-  - job_count
-  - avg_salary
+### Salary Distribution
+Min / Max / Avg salary per role
 
 ---
 
-### 5. gold_skill_demand.parquet
-- skill vs job_count
-- extracted from job descriptions
+### Country Overview
+Job demand + salary trends by country
 
 ---
 
-## Processing Engine
-DuckDB is used for:
-- aggregation
-- transformation
-- file output
+### Skill Demand
+Extracted using keyword matching on descriptions
+
+---
+
+## Engine
+
+DuckDB:
+- In-memory + disk hybrid
+- Optimized for analytical workloads
+
+---
+
+## Design Insight
+
+Gold layer is **read-optimized**, while Silver is **write-optimized**.

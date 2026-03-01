@@ -1,60 +1,45 @@
 # Ingestion Pipeline Design
-## Pagination Strategy
 
-Rule:
-- For each country (US, UK, AU), we will fetch multiple pages.
-- Each page returns up to 50 jobs.
+## Data Source
 
-Total expected jobs per day: ~250
+Adzuna Job Search API
 
+---
 
-## Failure Handling Strategy
+## Extraction Strategy
 
-If an API call fails:
-- Wait 5 seconds
-- Retry up to 3 times
-- If still failing, skip that page and log the error
+For each:
+- country
+- role
+- page
 
-Example log:
-[2026-01-20 08:00] ERROR: Failed to fetch page 2 for US
-
-We prefer partial data over no data.
-Meaning: 
-If UK fails but US succeeds, we still save US data.
+We fetch:
+countries × roles × pages
 
 
-## How data will be merged
+---
 
-- Fetch US jobs → store in list
-- Fetch UK jobs → append to same list
-- Fetch AU jobs → append to same list
-- Save ONE combined file per day:
-  data/bronze/raw_jobs_YYYY_MM_DD.json
+## Pagination
 
+- Max ~50 jobs per page
+- Configurable page depth (currently 6)
 
-## Bronze JSON structure
+---
+
+## Failure Handling
+
+- Retry logic (implicit via loop)
+- Errors logged per page
+- Pipeline continues (partial success allowed)
+
+---
+
+## Data Model (Bronze)
+
+```json
 {
-  "ingestion_date": "2026-01-20",
+  "ingestion_date": "YYYY-MM-DD",
   "source": "adzuna",
-  "jobs": [
-    {
-      "job_id": "12345",
-      "title": "Data Engineer",
-      "company": "Amazon",
-      "city": "Seattle",
-      "country": "US",
-      "salary": "$90k-$120k",
-      "description": "Work with Python and SQL",
-      "posted_date": "2026-01-19"
-    }
-  ]
+  "jobs": [...]
 }
-This structure will be used for ALL days.
-
-## Ingestion Flow Diagram
-Adzuna API
-     |
-     v
-Fetch US pages ----\
-Fetch UK pages -----> Combine jobs ---> Save JSON ---> Upload to Google Drive
-Fetch AU pages ----/
+Each job is flattened into structured fields.

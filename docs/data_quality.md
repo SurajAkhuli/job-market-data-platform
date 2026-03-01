@@ -1,96 +1,89 @@
-# Data Quality Layer
+# Data Quality Framework
 
-## Purpose
-The data quality layer ensures that only valid and consistent data moves from Bronze to Silver.
+## Objective
 
-This prevents:
-- invalid records
-- schema issues
-- inconsistent values
-- downstream corruption
+Ensure only high-integrity data propagates to analytical layers.
 
 ---
 
-## Location in Pipeline
-Implemented in:
-pipelines/bronze_to_silver.py
-
-Executed immediately after reading raw JSON.
-
----
-
-## Validation Rules
+## Validation Stages
 
 ### 1. Schema Validation
-Ensures required columns are present:
+Strict enforcement of required fields:
+
 - job_id
 - title
 - company
 - city
 - country
-- salary fields
+- salary_min / salary_max
 - description
 - posted_date
 - ingestion_date
 
-If missing → pipeline fails.
+Failure → pipeline stops
 
 ---
 
-### 2. Null Validation
-Critical columns:
+### 2. Null Handling
+
+Critical fields:
 - job_id
 - title
 - country
 
-Rows with null values are rejected.
+Invalid rows → rejected dataset
 
 ---
 
-### 3. Salary Validation
-Condition:
+### 3. Salary Integrity
+
+Constraint:
 salary_min <= salary_max
 
-Invalid rows are rejected.
 
 ---
 
-### 4. Duplicate Handling
-Duplicate job_id entries are removed (keeping latest).
+### 4. Deduplication
+
+- Based on `job_id`
+- Keeps latest record
 
 ---
 
-### 5. Description Quality
-Rows with description length < 30 are rejected.
+### 5. Text Quality
+
+- Description length ≥ 30
 
 ---
 
-### 6. Country Validation
-Allowed:
-IN, US, AU, GB, CA
+### 6. Domain Validation
 
-Invalid values are rejected.
+Allowed countries: IN, US, AU, GB, CA
 
----
-
-## Output
-
-### Valid Data
-Saved to:
-data/silver/jobs_cleaned_YYYY_MM_DD.parquet
 
 ---
 
-### Rejected Data
-Saved to:
-data/silver_rejected/rejected_YYYY_MM_DD.parquet
+## Outputs
+
+| Type      | Location |
+|----------|--------|
+| Valid    | Silver layer |
+| Rejected | silver_rejected |
 
 ---
 
-## Summary Logging
+## Observability
+
 Each run logs:
 
-- total rows
-- valid rows
-- rejected rows
-- reason counts
+- raw row count
+- valid row count
+- rejected row count
+- rule-level failures
+
+---
+
+## Design Insight
+
+This layer acts as a **contract enforcement boundary** between ingestion and analytics.

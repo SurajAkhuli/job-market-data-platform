@@ -1,17 +1,28 @@
-# Pipeline Schedule
+# Pipeline Scheduling
 
-The ingestion pipeline will run automatically every day at:
+## Current State
 
+The DAG is NOT scheduled.
+schedule = None
+
+
+This means:
+- Runs must be triggered manually
+
+---
+
+## Intended Schedule (Future)
+
+Daily run at:
 08:00 AM IST
 
-Workflow each day:
+---
 
-1. Ingest API data (pipelines/ingest_api.py)
-2. Store raw data in:
-   data/bronze/raw_jobs_YYYY_MM_DD.json
+## Recommendation
 
-3. Upload raw file to:
-   Google Drive/job-market-data-lake/data/bronze/
+Set:
 
-This job will be automated using Airflow in:
-dags/ETL_pipeline.py
+```python
+schedule = "@daily"
+
+and control execution time via Airflow configuration.
