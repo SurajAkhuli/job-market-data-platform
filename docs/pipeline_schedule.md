@@ -14,4 +14,4 @@ Workflow each day:
    Google Drive/job-market-data-lake/data/bronze/
 
 This job will be automated using Airflow in:
-airflow/job_pipeline_dag.py
+dags/ETL_pipeline.py

@@ -5,7 +5,7 @@ api:
     - IN    # India           # inr      # 1
     - US    # United States   # usd       # 90.24
     - AU    # Australia      # aud        # 62.88 
-    - gb  # Great Britain     # gbp       # 122.25
+    - GB  # Great Britain     # gbp       # 122.25
     - CA    # Canada     # cad            # 60.18
   roles:
     - "Data Engineer"
